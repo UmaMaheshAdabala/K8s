@@ -88,10 +88,12 @@ This becomes crucial in production environments where there may be hundreds or t
 
 - etcd is a key value pair data in which all the data required to managet the different nodes in a cluster is stored.
 - It enable logs to the nodes to disable conflicts with the multiple master in a cluster.
+- It also acts as a backup
 
 ### Scheduler
 
 - It is responsible for distributing the work or containers b/w nodes.
+- Basically the API Server decides the action and the Scheduler performs the action.
 
 ### Controllers
 
@@ -131,3 +133,100 @@ This becomes crucial in production environments where there may be hundreds or t
 - tool mantained and eveloped by kubernetes
 - it works with container run time capable tools.
 - used to inspect and debug containers
+
+# Abishek - K8s
+
+## Why K8s and why not docker containers
+
+- Let say there are 100 containers running on a docker host but the 2nd container in consuming more cpu and memory. so that contaner x and y and not getting enough resources and they got died. so to avoid this we use K8s.
+
+- Lack of Auto Healing in Docker.
+
+- Lack of Auto Scaling in Docker.
+
+## compare with ECS
+
+- | **Kubernetes**     | **Amazon ECS**             | 📝 Explanation                              |
+  | ------------------ | -------------------------- | ------------------------------------------- |
+  | `Cluster`          | ECS Cluster                | Group of compute instances                  |
+  | `Node`             | EC2 instance / Fargate     | Worker machine running containers           |
+  | `Pod`              | Task                       | Unit of deployment (can run 1+ containers)  |
+  | `Container`        | Container                  | Actual running app inside a pod/task        |
+  | `Deployment`       | ECS Service                | Manages lifecycle, scaling, rolling updates |
+  | `ReplicaSet`       | ECS Desired Task Count     | Ensures required number of tasks/pods       |
+  | `Service` (K8s)    | ECS Service + Target Group | Exposes pod/task and manages networking     |
+  | `ConfigMap/Secret` | ECS Env Vars / Secrets     | External configuration management           |
+  | `Ingress`          | ALB/NLB                    | Expose apps to internet users               |
+  | `kube-scheduler`   | ECS Scheduler              | Chooses where to place pods/tasks           |
+  | `kubelet`          | ECS agent                  | Node-level controller for pods/tasks        |
+
+---
+
+## K8s in Production Env
+
+- Basically in general purpose env they use minicube and kubectl
+- But in production they use `kops` to install
+
+### Steps
+
+### Install dependencies
+
+```
+curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -
+```
+
+```
+echo "deb https://apt.kubernetes.io/ kubernetes-xenial main" | sudo tee -a /etc/apt/sources.list.d/kubernetes.list
+```
+
+```
+sudo apt-get update
+sudo apt-get install -y python3-pip apt-transport-https kubectl
+```
+
+```
+pip3 install awscli --upgrade
+```
+
+```
+export PATH="$PATH:/home/ubuntu/.local/bin/"
+```
+
+### Install KOPS (our hero for today)
+
+```
+curl -LO https://github.com/kubernetes/kops/releases/download/$(curl -s https://api.github.com/repos/kubernetes/kops/releases/latest | grep tag_name | cut -d '"' -f 4)/kops-linux-amd64
+
+chmod +x kops-linux-amd64
+
+sudo mv kops-linux-amd64 /usr/local/bin/kops
+```
+
+### Provide the below permissions to your IAM user. If you are using the admin user, the below permissions are available by default
+
+1. AmazonEC2FullAccess
+2. AmazonS3FullAccess
+3. IAMFullAccess
+4. AmazonVPCFullAccess
+
+### Set up AWS CLI configuration on your EC2 Instance or Laptop.
+
+Run `aws configure`
+
+## Kubernetes Cluster Installation
+
+Please follow the steps carefully and read each command before executing.
+
+### Create S3 bucket for storing the KOPS objects.
+
+```
+aws s3api create-bucket --bucket kops-abhi-storage --region us-east-1
+```
+
+### Create the cluster
+
+```
+kops create cluster --name=demok8scluster.k8s.local --state=s3://kops-abhi-storage --zones=us-east-1a --node-count=1 --node-size=t2.micro --master-size=t2.micro  --master-volume-size=8 --node-volume-size=8
+```
+
+---
